@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { registerSchema, type RegisterData } from '@/lib/validations';
 import { supabase } from '@/lib/supabase';
+import { parseAuthError, authLogger, authErrorMessages } from '@/lib/utils/auth-helpers';
 import { UserPlus, Mail, Lock, User, Phone } from 'lucide-react';
 
 interface RegisterFormProps {
@@ -33,6 +34,8 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     setError(null);
 
     try {
+      authLogger.register(data.email);
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -46,21 +49,38 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       });
 
       if (authError) {
-        throw authError;
+        const errorMessage = parseAuthError(authError, 'register');
+        authLogger.registerError(data.email, errorMessage);
+        setError(errorMessage);
+        return;
       }
 
       if (authData.user) {
-        onSuccess({
+        authLogger.registerSuccess(authData.user.id, authData.user.email || '');
+
+        // Check if email confirmation is required
+        if (!authData.user.email_confirmed_at) {
+          setError(authErrorMessages.emailConfirmationRequired);
+          return;
+        }
+
+        const userData = {
           id: authData.user.id,
           email: authData.user.email || '',
           firstName: data.firstName,
           lastName: data.lastName,
           phone: data.phone,
-        });
+        };
+
+        onSuccess(userData);
+      } else {
+        authLogger.registerError(data.email, 'Registration succeeded but no user data returned');
+        setError(authErrorMessages.registrationIncomplete);
       }
     } catch (error: unknown) {
-      console.error('Registration error:', error);
-      setError(error instanceof Error ? error.message : 'Errore durante la registrazione');
+      const errorMessage = error instanceof Error ? error.message : 'Unexpected error';
+      authLogger.registerError(data.email, errorMessage);
+      setError('Errore imprevisto durante la registrazione. Riprova più tardi.');
     } finally {
       setIsLoading(false);
     }

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { loginSchema, type LoginData } from '@/lib/validations';
 import { supabase } from '@/lib/supabase';
+import { parseAuthError, authLogger, extractUserData } from '@/lib/utils/auth-helpers';
 import { LogIn, Mail, Lock } from 'lucide-react';
 
 interface LoginFormProps {
@@ -33,27 +34,32 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setError(null);
 
     try {
+      authLogger.login(data.email, 'password');
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
       if (authError) {
-        throw authError;
+        const errorMessage = parseAuthError(authError, 'login');
+        authLogger.loginError(data.email, errorMessage, 'password');
+        setError(errorMessage);
+        return;
       }
 
       if (authData.user) {
-        onSuccess({
-          id: authData.user.id,
-          email: authData.user.email || '',
-          firstName: (authData.user.user_metadata as { firstName?: string })?.firstName || '',
-          lastName: (authData.user.user_metadata as { lastName?: string })?.lastName || '',
-          phone: (authData.user.user_metadata as { phone?: string })?.phone || '',
-        });
+        const userData = extractUserData(authData.user);
+        authLogger.loginSuccess(userData.id, userData.email, 'password');
+        onSuccess(userData);
+      } else {
+        authLogger.loginError(data.email, 'Login succeeded but no user data returned', 'password');
+        setError('Login completato ma dati utente non disponibili. Riprova.');
       }
     } catch (error: unknown) {
-      console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : 'Errore durante il login');
+      const errorMessage = error instanceof Error ? error.message : 'Unexpected error';
+      authLogger.loginError(data.email, errorMessage, 'password');
+      setError('Errore imprevisto durante il login. Riprova più tardi.');
     } finally {
       setIsLoading(false);
     }

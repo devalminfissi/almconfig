@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useWizardStore } from '@/lib/stores/wizard-store';
 import { quoteRequestSchema, type QuoteRequestData } from '@/lib/validations';
 import { supabase } from '@/lib/supabase';
+import { sendQuoteNotification } from '@/lib/services/email';
 import {
   Send,
   CheckCircle,
@@ -28,14 +29,16 @@ export function StepQuote() {
     colors,
     glassType,
     accessories,
-    guestData,
     user,
-    setCompleted
+    setCompleted,
+    reset,
+    setCurrentStep
   } = useWizardStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState(10);
 
   const {
     register,
@@ -50,6 +53,22 @@ export function StepQuote() {
   });
 
   const watchedNotes = watch('notes');
+
+  // Countdown per reindirizzamento automatico
+  useEffect(() => {
+    if (isSubmitted && redirectCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRedirectCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (isSubmitted && redirectCountdown === 0) {
+      // Reset completo del configuratore quando il countdown finisce
+      reset();
+      setIsSubmitted(false);
+      setRedirectCountdown(10);
+      setCurrentStep(0);
+    }
+  }, [isSubmitted, redirectCountdown, reset, setCurrentStep]);
 
   const onSubmit = async (data: QuoteRequestData) => {
     if (!configurationId) {
@@ -72,12 +91,32 @@ export function StepQuote() {
 
       if (quoteError) throw quoteError;
 
+      // Prepara i dati per l'email di notifica
+      const emailData = {
+        customerName: `${user!.firstName} ${user!.lastName}`,
+        customerEmail: user!.email,
+        customerPhone: user!.phone,
+        material: material?.toUpperCase() || '',
+        category: category?.replace('-', ' ') || '',
+        dimensions: dimensions ? `${dimensions.width} × ${dimensions.height} cm` : 'N/A',
+        colors: colors,
+        glassType: glassType || 'Standard',
+        accessories: accessories,
+        notes: data.notes,
+        configurationId: configurationId
+      };
+
+      // Invia email di notifica (non bloccante)
+      try {
+        await sendQuoteNotification(emailData);
+      } catch (emailError) {
+        console.error('Errore invio email notifica:', emailError);
+        // Non blocca il flusso se l'email fallisce
+      }
+
       // Aggiorna lo stato della configurazione
       setCompleted(true);
       setIsSubmitted(true);
-
-      // Qui potresti anche inviare un'email di notifica
-      // o integrare con un servizio di email come Resend
 
     } catch (error: unknown) {
       console.error('Error submitting quote request:', error);
@@ -106,6 +145,14 @@ export function StepQuote() {
                 Riceverai una risposta entro 24-48 ore.
               </p>
 
+              {redirectCountdown > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-blue-800 text-sm">
+                    ⏰ Reindirizzamento automatico alla home in {redirectCountdown} secondi...
+                  </p>
+                </div>
+              )}
+
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">Cosa succede ora?</h3>
                 <ul className="text-sm text-gray-600 space-y-1 text-left">
@@ -116,12 +163,32 @@ export function StepQuote() {
                 </ul>
               </div>
 
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 mb-6">
                 <p>Hai domande? Contattaci:</p>
                 <p className="mt-1">
-                  📧 info@bemyrider.com | 📞 +39 123 456 7890
+                  📧 info@alminfissi.it | 📞 380 781 5885
+                </p>
+                <p className="mt-1">
+                  📍 Vicolo della Ferrovia, 10, Palermo
                 </p>
               </div>
+
+                     {/* Pulsante di azione */}
+                     <div className="flex justify-center">
+                       <Button
+                         onClick={() => {
+                           // Reset completo del configuratore
+                           reset();
+                           setIsSubmitted(false);
+                           setRedirectCountdown(10);
+                           // Torna al passo 0 (inizio del wizard)
+                           setCurrentStep(0);
+                         }}
+                         className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+                       >
+                         🔄 Richiedi Altro Preventivo
+                       </Button>
+                     </div>
             </div>
           </CardContent>
         </Card>
@@ -161,19 +228,19 @@ export function StepQuote() {
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-gray-400" />
                     <span>
-                      {user ? `${user.firstName} ${user.lastName}` : `${guestData?.firstName} ${guestData?.lastName}`}
+                      {`${user!.firstName} ${user!.lastName}`}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Mail className="w-4 h-4 text-gray-400" />
                     <span>
-                      {user ? user.email : guestData?.email}
+                      {user!.email}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Phone className="w-4 h-4 text-gray-400" />
                     <span>
-                      {user ? user.phone : guestData?.phone}
+                      {user!.phone}
                     </span>
                   </div>
                 </div>

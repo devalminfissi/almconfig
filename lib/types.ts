@@ -1,13 +1,10 @@
 // User types
-export interface GuestData {
+export interface User {
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-}
-
-export interface User extends GuestData {
-  id: string;
   created_at?: string;
 }
 
@@ -82,8 +79,6 @@ export interface GlassOption {
 // Wizard state types
 export interface WizardState {
   currentStep: number;
-  isGuest: boolean;
-  guestData?: GuestData;
   user?: User;
   material?: Material;
   category?: Category;
@@ -98,8 +93,7 @@ export interface WizardState {
 // Configuration record from database
 export interface ConfigurationRecord {
   id: string;
-  user_id: string | null;
-  guest_data: GuestData | null;
+  user_id: string;
   material: Material | null;
   category: Category | null;
   dimensions: Dimensions | null;
