@@ -1,30 +1,5 @@
 import { z } from 'zod';
 
-// Guest form validation
-export const guestFormSchema = z.object({
-  firstName: z
-    .string()
-    .min(2, 'Il nome deve contenere almeno 2 caratteri')
-    .max(50, 'Il nome non può superare i 50 caratteri')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Il nome può contenere solo lettere, spazi, apostrofi e trattini'),
-
-  lastName: z
-    .string()
-    .min(2, 'Il cognome deve contenere almeno 2 caratteri')
-    .max(50, 'Il cognome non può superare i 50 caratteri')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Il cognome può contenere solo lettere, spazi, apostrofi e trattini'),
-
-  email: z
-    .string()
-    .email('Inserisci un indirizzo email valido')
-    .max(100, 'L\'email non può superare i 100 caratteri'),
-
-  phone: z
-    .string()
-    .min(10, 'Il numero di telefono deve contenere almeno 10 caratteri')
-    .max(15, 'Il numero di telefono non può superare i 15 caratteri')
-    .regex(/^[\+]?[0-9\s\-\(\)]+$/, 'Inserisci un numero di telefono valido')
-});
 
 // Dimensions form validation
 export const dimensionsSchema = z.object({
@@ -98,7 +73,6 @@ export const quoteRequestSchema = z.object({
 });
 
 // Export types
-export type GuestFormData = z.infer<typeof guestFormSchema>;
 export type DimensionsData = z.infer<typeof dimensionsSchema>;
 export type ColorsData = z.infer<typeof colorsSchema>;
 export type LoginData = z.infer<typeof loginSchema>;

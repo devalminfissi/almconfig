@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import {
   WizardState,
-  GuestData,
   User,
   Material,
   Category,
@@ -15,8 +14,6 @@ import { supabase } from '../supabase';
 interface WizardStore extends WizardState {
   // Actions
   setCurrentStep: (step: number) => void;
-  setGuestMode: (isGuest: boolean) => void;
-  setGuestData: (data: GuestData) => void;
   setUser: (user: User) => void;
   setMaterial: (material: Material) => void;
   setCategory: (category: Category) => void;
@@ -45,7 +42,6 @@ interface WizardStore extends WizardState {
 
 const initialState: WizardState = {
   currentStep: 0,
-  isGuest: true,
   accessories: [],
   isCompleted: false,
 };
@@ -61,18 +57,8 @@ export const useWizardStore = create<WizardStore>()(
           get().saveToDatabase();
         },
 
-        setGuestMode: (isGuest) => {
-          set({ isGuest });
-          get().saveToDatabase();
-        },
-
-        setGuestData: (data) => {
-          set({ guestData: data });
-          get().saveToDatabase();
-        },
-
         setUser: (user) => {
-          set({ user, isGuest: false });
+          set({ user });
           get().saveToDatabase();
         },
 
@@ -149,8 +135,7 @@ export const useWizardStore = create<WizardStore>()(
             const state = get();
 
             const dataToSave = {
-              user_id: state.user?.id || null,
-              guest_data: state.guestData || null,
+              user_id: state.user!.id,
               material: state.material || null,
               category: state.category || null,
               dimensions: state.dimensions || null,
@@ -182,14 +167,8 @@ export const useWizardStore = create<WizardStore>()(
                 set({ configurationId: data.id });
               }
             }
-          } catch (error: any) {
-            console.error('Error saving to database:', {
-              message: error?.message,
-              details: error?.details,
-              hint: error?.hint,
-              code: error?.code,
-              fullError: error
-            });
+          } catch (error: unknown) {
+            console.error('Error saving to database:', error);
             // In a real app, you might want to show a toast notification here
           }
         },
@@ -204,12 +183,18 @@ export const useWizardStore = create<WizardStore>()(
 
             if (error) throw error;
 
-            if (data) {
+            if (data && data.user_id) {
+              // Nota: In una configurazione reale, dovremmo ottenere i dati utente da Supabase Auth
+              // Per ora, creiamo un oggetto User con valori placeholder
               set({
                 configurationId: data.id,
-                isGuest: !data.user_id,
-                guestData: data.guest_data,
-                user: data.user_id ? { id: data.user_id, ...data.guest_data } : undefined,
+                user: {
+                  id: data.user_id,
+                  firstName: '',
+                  lastName: '',
+                  email: '',
+                  phone: ''
+                },
                 material: data.material,
                 category: data.category,
                 dimensions: data.dimensions,
@@ -236,17 +221,15 @@ export const useWizardStore = create<WizardStore>()(
 
           switch (step) {
             case 0:
-              return state.isGuest ? !!state.guestData : !!state.user;
+              return true; // Material step is always valid (user can select)
             case 1:
-              return !!state.material;
+              return !!state.material; // Category step requires material
             case 2:
-              return !!state.category;
+              return !!state.material && !!state.category; // Configuration step requires both
             case 3:
-              return !!state.dimensions && !!state.colors;
+              return !!state.material && !!state.category && !!state.dimensions && !!state.colors; // Preview step requires all config
             case 4:
-              return true; // Preview step is always valid
-            case 5:
-              return state.isCompleted;
+              return state.isCompleted; // Quote step requires completion
             default:
               return false;
           }
@@ -261,8 +244,6 @@ export const useWizardStore = create<WizardStore>()(
         name: 'wizard-storage',
         partialize: (state) => ({
           currentStep: state.currentStep,
-          isGuest: state.isGuest,
-          guestData: state.guestData,
           user: state.user,
           material: state.material,
           category: state.category,

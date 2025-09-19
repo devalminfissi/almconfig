@@ -5,7 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-import { GuestData, Dimensions, Colors, GlassType } from './types';
+import { Dimensions, Colors, GlassType } from './types';
 
 // Database types
 export interface Database {
@@ -15,7 +15,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string | null
-          guest_data: GuestData | null
+          guest_data: { firstName: string; lastName: string; email: string; phone: string } | null
           material: string | null
           category: string | null
           dimensions: Dimensions | null
@@ -30,7 +30,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id?: string | null
-          guest_data?: GuestData | null
+          guest_data?: { firstName: string; lastName: string; email: string; phone: string } | null
           material?: string | null
           category?: string | null
           dimensions?: Dimensions | null
@@ -45,7 +45,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string | null
-          guest_data?: GuestData | null
+          guest_data?: { firstName: string; lastName: string; email: string; phone: string } | null
           material?: string | null
           category?: string | null
           dimensions?: Dimensions | null

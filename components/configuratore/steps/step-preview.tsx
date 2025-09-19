@@ -53,7 +53,6 @@ export function StepPreview() {
     colors: selectedColors,
     glassType,
     accessories: selectedAccessories,
-    guestData,
     user,
     nextStep,
     prevStep
@@ -202,21 +201,11 @@ export function StepPreview() {
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Cliente</h4>
                 <div className="text-sm text-gray-600">
-                  {user ? (
-                    <div>
-                      <p>{user.firstName} {user.lastName}</p>
-                      <p>{user.email}</p>
-                      <p>{user.phone}</p>
-                    </div>
-                  ) : guestData ? (
-                    <div>
-                      <p>{guestData.firstName} {guestData.lastName}</p>
-                      <p>{guestData.email}</p>
-                      <p>{guestData.phone}</p>
-                    </div>
-                  ) : (
-                    <p>Informazioni cliente non disponibili</p>
-                  )}
+                  <div>
+                    <p>{user!.firstName} {user!.lastName}</p>
+                    <p>{user!.email}</p>
+                    <p>{user!.phone}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>

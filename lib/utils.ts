@@ -65,12 +65,11 @@ export function calculateTotalPrice(
 // Get step title
 export function getStepTitle(step: number): string {
   const titles = {
-    0: 'Accesso',
-    1: 'Materiale',
-    2: 'Categoria Prodotto',
-    3: 'Configurazione',
-    4: 'Anteprima',
-    5: 'Richiesta Preventivo'
+    0: 'Materiale',
+    1: 'Categoria Prodotto',
+    2: 'Configurazione',
+    3: 'Anteprima',
+    4: 'Richiesta Preventivo'
   };
   return titles[step as keyof typeof titles] || 'Passo Sconosciuto';
 }
@@ -78,12 +77,11 @@ export function getStepTitle(step: number): string {
 // Get step description
 export function getStepDescription(step: number): string {
   const descriptions = {
-    0: 'Scegli come accedere al configuratore',
-    1: 'Seleziona il materiale del tuo serramento',
-    2: 'Scegli il tipo di prodotto desiderato',
-    3: 'Personalizza dimensioni, colori e accessori',
-    4: 'Visualizza l\'anteprima della tua configurazione',
-    5: 'Invia la richiesta di preventivo'
+    0: 'Seleziona il materiale del tuo serramento',
+    1: 'Scegli il tipo di prodotto desiderato',
+    2: 'Personalizza dimensioni, colori e accessori',
+    3: 'Visualizza l\'anteprima della tua configurazione',
+    4: 'Invia la richiesta di preventivo'
   };
   return descriptions[step as keyof typeof descriptions] || '';
 }
